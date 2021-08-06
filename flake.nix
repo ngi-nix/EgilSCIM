@@ -55,6 +55,8 @@
       pkgs = import nixpkgs { inherit system; overlays = [ self.overlay ]; };
     in
     rec {
+      checks = packages;
+
       packages = {
         inherit (pkgs) egil-scim-client;
       };
@@ -69,5 +71,17 @@
       };
 
       defaultApp = apps.egil-scim-client;
+
+      hydraJobs = {
+        build = packages;
+      };
+
+      devShell = pkgs.mkShell {
+        packages = with pkgs; [
+          gdb
+        ];
+
+        inputsFrom = builtins.attrValues packages;
+      };
     });
 }
