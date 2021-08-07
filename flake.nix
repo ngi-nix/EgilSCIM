@@ -7,81 +7,69 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    {
-      overlays = {
-        egil-scim-client = final: prev:
-          {
-            egil-scim-client = with final; stdenv.mkDerivation rec {
-              pname = "egil-scim-client";
-              version = "2.7.0";
-              src = self;
-
-              strictDeps = true;
-
-              buildInputs = [
-                boost
-                curl      # libcurl
-                openldap  # libldap
-              ];
-
-              nativeBuildInputs = [
-                cmake
-              ];
-
-              installPhase = ''
-                mkdir -p $out/bin/
-                cp EgilSCIMClient $out/bin/
-              '';
-
-              meta = {
-                description = "The EGIL SCIM client";
-                longDescription = ''
-                  The EGIL SCIM client implements the EGIL profile of the SS
-                  12000 standard.  It reads information about students, groups
-                  etc. from LDAP and sends updates to a SCIM server.
-                '';
-                homepage =
-                  "https://www.skolfederation.se/egil-scimclient-esc/";
-                license = nixpkgs.lib.licenses.agpl3Plus;
-                maintainers = [];
-              };
-            };
-          };
+    let
+      supportedSystems = flake-utils.lib.defaultSystems;
+      commonArgs = { inherit supportedSystems; };
+      derivations = {
+        egil-scim-client = import ./nix/egil-scim-client.nix commonArgs;
+        egil-scim-client-debug =
+          import ./nix/egil-scim-client.nix (commonArgs // { debugBuild = true; });
       };
+    in
+    {
+      overlays = builtins.mapAttrs
+        (name: drv:
+          (final: prev:
+            builtins.listToAttrs [
+              { name = name; value = drv prev; }
+            ]
+          )
+        )
+        derivations;
 
       overlay = self.overlays.egil-scim-client;
-    } // flake-utils.lib.eachDefaultSystem(system:
-    let
-      pkgs = import nixpkgs { inherit system; overlays = [ self.overlay ]; };
-    in
-    rec {
-      checks = packages;
-
-      packages = {
-        inherit (pkgs) egil-scim-client;
-      };
-
-      defaultPackage = pkgs.egil-scim-client;
-
-      apps = {
-        egil-scim-client = flake-utils.lib.mkApp {
-          drv = packages.egil-scim-client;
-          exePath = "/bin/EgilSCIMClient";
+    } // flake-utils.lib.eachSystem supportedSystems (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = builtins.attrValues self.overlays;
         };
-      };
+      in
+      rec {
+        checks = packages;
 
-      defaultApp = apps.egil-scim-client;
+        packages = pkgs.lib.getAttrs (builtins.attrNames self.overlays) pkgs;
 
-      hydraJobs = {
-        build = packages;
-      };
+        defaultPackage = pkgs.egil-scim-client;
 
-      devShell = pkgs.mkShell {
-        packages = with pkgs; [
-          gdb
-        ];
+        apps = builtins.mapAttrs
+          (name: app: flake-utils.lib.mkApp { drv = app; })
+          packages;
 
-        inputsFrom = builtins.attrValues packages;
-      };
-    });
+        defaultApp = apps.egil-scim-client;
+
+        hydraJobs = {
+          build = { inherit (packages) egil-scim-client; };
+        };
+
+        devShell = pkgs.mkShell {
+          packages = with pkgs; [
+            gdb
+          ];
+
+          shellHook =
+            let
+              # TODO recursively look into child dependencies
+              debugInputs = unique (flatten (catAttrs "debugInfoFrom" (attrValues packages)));
+              debugInfos = map (drv: drv.debug) debugInputs;
+              debugInfoDirs = map (drv: drv + "/lib/debug") debugInfos;
+            in
+            ''
+              export NIX_DEBUG_INFO_DIRS=${concatStringsSep ":" debugInfoDirs}
+              alias gdb='gdb --directory=./src/'
+            '';
+
+          inputsFrom = builtins.attrValues packages;
+        };
+      });
 }
