@@ -8,19 +8,26 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
-      supportedSystems = flake-utils.lib.defaultSystems;
-      commonArgs = { inherit supportedSystems; };
+      inherit (builtins) mapAttrs listToAttrs attrValues attrNames concatStringsSep;
+      inherit (flake-utils.lib) defaultSystems eachSystem mkApp;
+
+      supportedSystems = defaultSystems;
+      commonArgs = {
+        inherit supportedSystems;
+        version = "2.7.0";
+      };
       derivations = {
         egil-scim-client = import ./nix/egil-scim-client.nix commonArgs;
         egil-scim-client-debug =
           import ./nix/egil-scim-client.nix (commonArgs // { debugBuild = true; });
+        egil-test-server = import ./nix/egil-test-server.nix commonArgs;
       };
     in
     {
-      overlays = builtins.mapAttrs
+      overlays = mapAttrs
         (name: drv:
           (final: prev:
-            builtins.listToAttrs [
+            listToAttrs [
               { name = name; value = drv prev; }
             ]
           )
@@ -28,28 +35,33 @@
         derivations;
 
       overlay = self.overlays.egil-scim-client;
-    } // flake-utils.lib.eachSystem supportedSystems (system:
+    } // eachSystem supportedSystems (system:
       let
+        inherit (pkgs.lib) getAttrs subtractLists catAttrs unique flatten optional;
+
         pkgs = import nixpkgs {
           inherit system;
-          overlays = builtins.attrValues self.overlays;
+          overlays = attrValues self.overlays;
         };
+        packageNames = attrNames self.overlays;
       in
       rec {
         checks = packages;
 
-        packages = pkgs.lib.getAttrs (builtins.attrNames self.overlays) pkgs;
+        packages = getAttrs packageNames pkgs;
 
         defaultPackage = pkgs.egil-scim-client;
 
-        apps = builtins.mapAttrs
-          (name: app: flake-utils.lib.mkApp { drv = app; })
+        apps = mapAttrs
+          (name: app: mkApp { drv = app; })
           packages;
 
         defaultApp = apps.egil-scim-client;
 
         hydraJobs = {
-          build = { inherit (packages) egil-scim-client; };
+          build = getAttrs
+            (subtractLists [ "egil-scim-client-debug" ] packageNames)
+            packages;
         };
 
         devShell = pkgs.mkShell {
@@ -69,7 +81,7 @@
               alias gdb='gdb --directory=./src/'
             '';
 
-          inputsFrom = builtins.attrValues packages;
+          inputsFrom = attrValues packages;
         };
       });
 }
