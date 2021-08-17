@@ -13,14 +13,18 @@
 
       supportedSystems = defaultSystems;
       commonArgs = {
-        inherit supportedSystems;
         version = "2.7.0";
+        homepage = "https://www.skolfederation.se/egil-scimclient-esc/";
+        maintainers = [];
+        platforms = supportedSystems;
       };
       derivations = {
         egil-scim-client = import ./nix/egil-scim-client.nix commonArgs;
-        egil-scim-client-debug =
-          import ./nix/egil-scim-client.nix (commonArgs // { debugBuild = true; });
+        egil-scim-client-debug = import ./nix/egil-scim-client.nix (commonArgs // { debugBuild = true; });
         egil-test-server = import ./nix/egil-test-server.nix commonArgs;
+        egil-tools-fetch-metadata = import ./nix/egil-tools-fetch-metadata.nix commonArgs;
+        egil-tools-list-metadata = import ./nix/egil-tools-list-metadata.nix commonArgs;
+        egil-tools-public-key-pin = import ./nix/egil-tools-public-key-pin.nix commonArgs;
       };
     in
     {
