@@ -2,17 +2,17 @@
 , homepage
 , maintainers
 , platforms
-, debugBuild ? false
+, isDebugBuild ? false
 , doCheck ? true
 }:
-nixpkgs:
+pkgs:
 
-with nixpkgs;
+with pkgs;
 let
   inherit (lib) optionalString optionals filter cleanSourceWith hasPrefix;
 
   baseName = "EgilSCIMClient";
-  suffix = optionalString debugBuild "-debug";
+  suffix = optionalString isDebugBuild "-debug";
   programName = "${baseName}${suffix}";
   exePath = "/bin/${programName}";
   sourceFilter = name: type: let
@@ -31,6 +31,8 @@ stdenv.mkDerivation rec {
 
   strictDeps = true;
 
+  dontPatch = true;
+
   buildInputs = [
     boost
     curl # libcurl
@@ -41,10 +43,10 @@ stdenv.mkDerivation rec {
     cmake
   ];
 
-  dontStrip = debugBuild;
+  dontStrip = isDebugBuild;
 
   cmakeFlags = [
-    (optionalString debugBuild "-DCMAKE_BUILD_TYPE=Debug")
+    (optionalString isDebugBuild "-DCMAKE_BUILD_TYPE=Debug")
   ];
 
   installPhase = ''
@@ -62,7 +64,7 @@ stdenv.mkDerivation rec {
     inherit homepage maintainers platforms;
 
     description = "The EGIL SCIM client" +
-      optionalString debugBuild " - debug build";
+      optionalString isDebugBuild " - debug build";
     longDescription =
       "The EGIL SCIM client implements the EGIL profile of the SS 12000 " +
       "standard. It reads information about students, groups etc. from LDAP " +
@@ -70,12 +72,7 @@ stdenv.mkDerivation rec {
     license = lib.licenses.agpl3Plus;
   };
 
-  passthru =
-    let
-      hasDebugInfo = drv: drv ? separateDebugInfo && drv.separateDebugInfo;
-    in
-    {
-      inherit exePath;
-      debugInfoFrom = optionals debugBuild (filter hasDebugInfo buildInputs);
-    };
+  passthru = {
+    inherit exePath;
+  };
 }

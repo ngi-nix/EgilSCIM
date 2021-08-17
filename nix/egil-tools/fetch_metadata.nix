@@ -3,34 +3,20 @@
 , maintainers
 , platforms
 }:
-nixpkgs:
+pkgs:
 
-with nixpkgs;
-let
-  inherit (builtins) replaceStrings;
 
-  toolName = "fetch-metadata";
-  filename = replaceStrings [ "-" ] [ "_" ] toolName + ".py";
-  exePath = "/bin/${filename}";
-in
-stdenv.mkDerivation rec {
-  pname = "egil-tools-${toolName}";
+with pkgs;
+import ./default.nix {
   inherit version;
 
-  strictDeps = true;
+  filename = "fetch_metadata.py";
 
   buildInputs = [
     (python3.withPackages (pythonPackages: with pythonPackages; [
       python-jose
     ]))
   ];
-
-  dontUnpack = true;
-
-  installPhase = ''
-    mkdir -p $out/bin
-    cp ${./../tools + "/${filename}"} $out${exePath}
-  '';
 
   meta = {
     inherit homepage maintainers platforms;
@@ -43,8 +29,4 @@ stdenv.mkDerivation rec {
       "authenticate a server.";
     license = lib.licenses.mit;
   };
-
-  passthru = {
-    inherit exePath;
-  };
-}
+} pkgs

@@ -3,9 +3,9 @@
 , maintainers
 , platforms
 }:
-nixpkgs:
+pkgs:
 
-with nixpkgs;
+with pkgs;
 buildGoModule rec {
   pname = "egil-test-server";
   inherit version;
@@ -13,6 +13,8 @@ buildGoModule rec {
   src = ./../test/test_server_go/EGILTestServer;
 
   vendorSha256 = "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=";
+
+  dontPatch = true;
 
   meta = {
     inherit homepage maintainers platforms;
