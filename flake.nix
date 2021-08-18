@@ -24,12 +24,15 @@
         egil-scim-client = import ./nix/egil-scim-client.nix commonArgs;
         egil-scim-client-debug = import ./nix/egil-scim-client.nix (commonArgs // { isDebugBuild = true; });
         egil-test-server = import ./nix/egil-test-server.nix commonArgs;
+
+        egil-tools = import ./nix/egil-tools/all.nix (commonArgs // { inherit egilToolPackageNames; });
         egil-tools-fetch_metadata = import ./nix/egil-tools/fetch_metadata.nix commonArgs;
         egil-tools-list_metadata = import ./nix/egil-tools/list_metadata.nix commonArgs;
         egil-tools-public_key_pin = import ./nix/egil-tools/public_key_pin.nix commonArgs;
       };
 
       packageNames = attrNames derivations;
+      egilToolPackageNames = filter (hasPrefix "egil-tools-") packageNames;
       debugPackageNames = filter (hasSuffix "-debug") packageNames;
     in
     {
@@ -37,7 +40,7 @@
         (name: drv:
           (final: prev:
             listToAttrs [
-              { name = name; value = drv prev; }
+              { name = name; value = drv final; }
             ]
           )
         )
