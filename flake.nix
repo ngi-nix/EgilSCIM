@@ -8,14 +8,16 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
-      inherit (builtins) mapAttrs listToAttrs attrValues attrNames concatStringsSep filter;
+      inherit (builtins) mapAttrs listToAttrs attrValues attrNames filter;
       inherit (flake-utils.lib) defaultSystems eachSystem mkApp;
-      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional;
+      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath;
 
       supportedSystems = defaultSystems;
       commonArgs = {
         version = "2.7.0";
         homepage = "https://www.skolfederation.se/egil-scimclient-esc/";
+        downloadPage = "https://github.com/Sambruk/EgilSCIM/releases";
+        changelog = "https://raw.githubusercontent.com/Sambruk/EgilSCIM/master/CHANGELOG.md";
         maintainers = [];
         platforms = supportedSystems;
       };
@@ -34,6 +36,7 @@
       packageNames = attrNames derivations;
       egilToolPackageNames = filter (hasPrefix "egil-tools-") packageNames;
       debugPackageNames = filter (hasSuffix "-debug") packageNames;
+      appPackageNames = subtractLists [ "egil-tools" ] packageNames;
     in
     {
       overlays = mapAttrs
@@ -58,11 +61,9 @@
         checks = packages;
 
         packages = getAttrs packageNames pkgs;
-
         defaultPackage = pkgs.egil-scim-client;
 
-        apps = mapAttrs (name: app: mkApp { drv = app; }) packages;
-
+        apps = mapAttrs (name: app: mkApp { drv = app; }) (getAttrs appPackageNames packages);
         defaultApp = apps.egil-scim-client;
 
         hydraJobs = {
@@ -71,6 +72,7 @@
 
         devShell = pkgs.mkShell {
           packages = with pkgs; [
+            egil-scim-client-debug
             gdb
           ];
 
@@ -78,12 +80,14 @@
             let
               debugPackages = attrValues (getAttrs debugPackageNames packages);
               # TODO recursively look into child dependencies
-              debugInputs = unique (flatten (catAttrs "buildInputs" debugPackages));
+              buildInputs = unique (flatten (catAttrs "buildInputs" debugPackages));
               hasDebugInfo = drv: drv ? separateDebugInfo && drv.separateDebugInfo;
-              debugInfoDirs = map (drv: drv.debug + "/lib/debug") (filter hasDebugInfo debugInputs);
+              debuggableBuildInputs = filter hasDebugInfo buildInputs;
+              debugOutputs = map (drv: drv.debug) debuggableBuildInputs;
+              debugSymbolsSearchPath = makeSearchPath "lib/debug" debugOutputs;
             in
             ''
-              export NIX_DEBUG_INFO_DIRS=${concatStringsSep ":" debugInfoDirs}
+              export NIX_DEBUG_INFO_DIRS=${debugSymbolsSearchPath}
               alias gdb='gdb --directory=./src/'
             '';
 

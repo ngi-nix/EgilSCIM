@@ -1,5 +1,7 @@
 { version
 , homepage
+, downloadPage
+, changelog
 , maintainers
 , platforms
 }:
@@ -19,10 +21,12 @@ import ./default.nix {
   ];
 
   meta = {
-    inherit homepage maintainers platforms;
-
     description = "List contents in authentication metadata";
     longDescription = "A script for listing entities from the metadata.";
+
+    inherit homepage downloadPage changelog;
+
     license = lib.licenses.mit;
+    inherit maintainers platforms;
   };
 } pkgs

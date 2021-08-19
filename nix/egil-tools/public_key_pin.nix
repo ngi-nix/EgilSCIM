@@ -1,5 +1,7 @@
 { version
 , homepage
+, downloadPage
+, changelog
 , maintainers
 , platforms
 }:
@@ -14,17 +16,19 @@ import ./default.nix {
 
   buildInputs = [
     bash.out
-    curl.bin
+    openssl.bin
   ];
 
   meta = {
-    inherit homepage maintainers platforms;
-
     description =
       "A script for generating a public key pin based on an x509 certificate";
     longDescription =
       "Extracts public key from a x509 certificate and outputs its pin. " +
       "Depends on OpenSSL.";
+
+    inherit homepage downloadPage changelog;
+
     license = null;
+    inherit maintainers platforms;
   };
 } pkgs

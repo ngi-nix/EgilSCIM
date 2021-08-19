@@ -12,24 +12,26 @@ let
   toolName = elemAt (split "\\." filename) 0;
   exePath = "/bin/${filename}";
 in
-stdenvNoCC.mkDerivation rec {
-  inherit version buildInputs meta;
-
+stdenvNoCC.mkDerivation {
   pname = "egil-tools-${toolName}";
+  inherit version;
+
+  src = ./../../tools + "/${filename}";
 
   strictDeps = true;
 
-  dontUnpack = true;
-  dontPatch = true;
-  dontConfigure = true;
-  dontBuild = true;
+  inherit buildInputs;
+
+  phases = [ "installPhase" "fixupPhase" ];
 
   installPhase = ''
     mkdir -p $out/bin
-    cp ${./../../tools + "/${filename}"} $out${exePath}
+    cp $src $out${exePath}
   '';
 
   passthru = {
     inherit exePath;
   };
+
+  inherit meta;
 }

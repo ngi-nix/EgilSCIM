@@ -1,5 +1,7 @@
 { version
 , homepage
+, downloadPage
+, changelog
 , maintainers
 , platforms
 , isDebugBuild ? false
@@ -9,25 +11,28 @@ pkgs:
 
 with pkgs;
 let
-  inherit (lib) optionalString optionals filter cleanSourceWith hasPrefix;
+  inherit (lib) optionalString optionals filter cleanSourceWith hasPrefix removePrefix;
 
-  baseName = "EgilSCIMClient";
+  src = ./..;
+  packageName = "egil-scim-client";
+  exeName = "EgilSCIMClient";
+
   suffix = optionalString isDebugBuild "-debug";
-  programName = "${baseName}${suffix}";
-  exePath = "/bin/${programName}";
+  pname = "${packageName}${suffix}";
+  exePath = "/bin/${exeName}${suffix}";
+
   sourceFilter = name: type: let
     baseName = baseNameOf (toString name);
-    sansPrefix = lib.removePrefix (toString ./..) name;
+    sansPrefix = removePrefix (toString src) name;
   in (
     baseName == "CMakeLists.txt" ||
     hasPrefix "/src" sansPrefix
   );
 in
-stdenv.mkDerivation rec {
-  pname = "egil-scim-client${suffix}";
-  inherit version;
+stdenv.mkDerivation {
+  inherit pname version;
 
-  src = cleanSourceWith { filter = sourceFilter; src = ./..; name = baseName; };
+  src = cleanSourceWith { inherit src; filter = sourceFilter; name = packageName; };
 
   strictDeps = true;
 
@@ -51,7 +56,7 @@ stdenv.mkDerivation rec {
 
   installPhase = ''
     mkdir -p $out/bin/
-    cp ${baseName} $out${exePath}
+    cp ${exeName} $out${exePath}
   '';
 
   inherit doCheck;
@@ -60,16 +65,19 @@ stdenv.mkDerivation rec {
     ./tests
   '';
 
-  meta = {
-    inherit homepage maintainers platforms;
 
+  meta = {
     description = "The EGIL SCIM client" +
       optionalString isDebugBuild " - debug build";
     longDescription =
       "The EGIL SCIM client implements the EGIL profile of the SS 12000 " +
       "standard. It reads information about students, groups etc. from LDAP " +
       "and sends updates to a SCIM server.";
+
+    inherit homepage downloadPage changelog;
+
     license = lib.licenses.agpl3Plus;
+    inherit maintainers platforms;
   };
 
   passthru = {

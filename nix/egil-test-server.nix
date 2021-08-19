@@ -1,12 +1,14 @@
 { version
 , homepage
+, downloadPage
+, changelog
 , maintainers
 , platforms
 }:
 pkgs:
 
 with pkgs;
-buildGoModule rec {
+buildGoModule {
   pname = "egil-test-server";
   inherit version;
 
@@ -17,8 +19,6 @@ buildGoModule rec {
   dontPatch = true;
 
   meta = {
-    inherit homepage maintainers platforms;
-
     description = "Test server for EgilSCIM";
     longDescription =
       "A simple server using openssl with the purpose of testing the " +
@@ -26,6 +26,10 @@ buildGoModule rec {
       "simply receives and logs the requests done by the client and returns " +
       "successful status codes back so the client thinks everything is " +
       "accepted";
+
+    inherit homepage downloadPage changelog;
+
     license = lib.licenses.agpl3Plus;
+    inherit maintainers platforms;
   };
 }
