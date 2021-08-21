@@ -23,20 +23,17 @@ let
 
   sourceFilter = name: type: let
     baseName = baseNameOf (toString name);
-    sansPrefix = removePrefix (toString src) name;
+    relativePath = removePrefix (toString src) name;
   in (
     baseName == "CMakeLists.txt" ||
-    hasPrefix "/src" sansPrefix
+    hasPrefix "/src" relativePath
   );
 in
 stdenv.mkDerivation {
   inherit pname version;
-
   src = cleanSourceWith { inherit src; filter = sourceFilter; name = packageName; };
 
   strictDeps = true;
-
-  dontPatch = true;
 
   buildInputs = [
     boost
@@ -48,23 +45,27 @@ stdenv.mkDerivation {
     cmake
   ];
 
-  dontStrip = isDebugBuild;
+  dontPatch = true;
 
   cmakeFlags = [
     (optionalString isDebugBuild "-DCMAKE_BUILD_TYPE=Debug")
   ];
+
+  inherit doCheck;
+  checkPhase = ''
+    ./tests
+  '';
 
   installPhase = ''
     mkdir -p $out/bin/
     cp ${exeName} $out${exePath}
   '';
 
-  inherit doCheck;
+  dontStrip = isDebugBuild;
 
-  checkPhase = ''
-    ./tests
-  '';
-
+  passthru = {
+    inherit exePath;
+  };
 
   meta = {
     description = "The EGIL SCIM client" +
@@ -78,9 +79,5 @@ stdenv.mkDerivation {
 
     license = lib.licenses.agpl3Plus;
     inherit maintainers platforms;
-  };
-
-  passthru = {
-    inherit exePath;
   };
 }

@@ -31,4 +31,6 @@ import ./default.nix {
     license = null;
     inherit maintainers platforms;
   };
+
+  wrapProgram = true;
 } pkgs

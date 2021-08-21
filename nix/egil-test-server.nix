@@ -11,12 +11,15 @@ with pkgs;
 buildGoModule {
   pname = "egil-test-server";
   inherit version;
-
   src = ./../test/test_server_go/EGILTestServer;
 
   vendorSha256 = "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=";
 
   dontPatch = true;
+
+  passthru = {
+    exePath = "/bin/EGILTestServer";
+  };
 
   meta = {
     description = "Test server for EgilSCIM";
