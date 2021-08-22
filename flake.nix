@@ -26,6 +26,7 @@
         egil-scim-client = import ./nix/egil-scim-client.nix commonArgs;
         egil-scim-client-debug = import ./nix/egil-scim-client.nix (commonArgs // { isDebugBuild = true; });
         egil-test-server = import ./nix/egil-test-server.nix commonArgs;
+        egil-test-suite = import ./nix/egil-test-suite.nix commonArgs;
 
         egil-tools = import ./nix/egil-tools/all.nix (commonArgs // { inherit egilToolPackageNames; });
         egil-tools-fetch_metadata = import ./nix/egil-tools/fetch_metadata.nix commonArgs;
