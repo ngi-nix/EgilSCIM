@@ -16,16 +16,16 @@ let
   pname = "egil-test-suite";
   exePath = "/bin/run_test_suite";
 
-  sourceFilter = name: type: let
-    relativePath = removePrefix (toString src) name;
-  in (
+  sourceFilter = name: type:
+    let
+      relativePath = removePrefix (toString src) name;
+    in
     any (directory: hasPrefix directory relativePath) [
       "/configs"
       "/scenarios"
       "/scripts"
       "/tests"
-    ]
-  );
+    ];
 
   buildInputs = [
     bash.out
@@ -36,6 +36,28 @@ let
   ];
 
   executableSearchPath = makeSearchPath "bin" buildInputs;
+
+  dockerImages =
+    let
+      inherit (dockerTools) pullImage;
+    in
+    [
+      (pullImage {
+        imageName = "osixia/openldap";
+        imageDigest = "sha256:d212a12aa728ccb4baf06fcc83dc77392d90018d13c9b40717cf455e09aeeef3";
+        sha256 = "sha256-91CSC1kVGgMB7ZRoiuLjn5YpBZIgcZDcmJzwQNJYg/U=";
+        os = "linux";
+        arch = "amd64";
+        finalImageTag = "1.2.4";
+      })
+    ];
+
+  loadDockerImages = writeShellScript "load-docker-images.sh" ''
+    for image in ${toString dockerImages}; do
+      [ -f "$image" ] || continue
+      docker load --input=$image
+    done
+  '';
 in
 stdenvNoCC.mkDerivation {
   inherit pname version;
@@ -49,7 +71,6 @@ stdenvNoCC.mkDerivation {
   ];
 
   patchPhase = ''
-    ls -al;
     substituteInPlace ./scripts/run_test_suite \
       --replace "\''${testroot}/test_server_go/EGILTestServer/" "" \
       --replace "\''${testroot}/../build/" ""
@@ -60,6 +81,7 @@ stdenvNoCC.mkDerivation {
 
   installPhase = ''
     cp -r . $out
+
     mkdir $out/bin/
     ln -s $out/scripts/run_test_suite $out${exePath}
   '';
@@ -72,7 +94,7 @@ stdenvNoCC.mkDerivation {
   '';
 
   passthru = {
-    inherit exePath;
+    inherit exePath loadDockerImages;
   };
 
   meta = {

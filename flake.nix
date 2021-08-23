@@ -10,7 +10,7 @@
     let
       inherit (builtins) mapAttrs listToAttrs attrValues attrNames filter;
       inherit (flake-utils.lib) defaultSystems eachSystem mkApp;
-      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath;
+      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath optionalAttrs;
 
       supportedSystems = defaultSystems;
       commonArgs = {
@@ -53,6 +53,8 @@
       overlay = self.overlays.egil-scim-client;
     } // eachSystem supportedSystems (system:
       let
+        inherit (pkgs.stdenv) isLinux;
+
         pkgs = import nixpkgs {
           inherit system;
           overlays = attrValues self.overlays;
@@ -69,30 +71,54 @@
 
         hydraJobs = {
           build = getAttrs (subtractLists debugPackageNames packageNames) packages;
+
+          vmTest = optionalAttrs (isLinux) {
+            egil-test-suite = optionalAttrs (system == "x86_64-linux") (import "${nixpkgs}/nixos/tests/make-test-python.nix"
+              ({ ... }: {
+                machine = { ... }: {
+                  environment.systemPackages = with pkgs; [
+                    egil-test-suite
+                  ];
+
+                  virtualisation.docker.enable = true;
+                  virtualisation.diskSize = 1024; # 512 is not enough
+                };
+
+                testScript = with pkgs; ''
+                  machine.wait_for_unit("docker.service")
+                  machine.execute("${egil-test-suite.loadDockerImages}")
+                  machine.succeed("run_test_suite")
+                '';
+              }) { inherit system pkgs; });
+            };
         };
 
-        devShell = pkgs.mkShell {
-          packages = with pkgs; [
-            egil-scim-client-debug
-            gdb
-          ];
+        devShell =
+          let
+            inherit (pkgs) mkShell;
 
-          shellHook =
-            let
-              debugPackages = attrValues (getAttrs debugPackageNames packages);
-              # TODO recursively look into child dependencies
-              buildInputs = unique (flatten (catAttrs "buildInputs" debugPackages));
-              hasDebugInfo = drv: drv ? separateDebugInfo && drv.separateDebugInfo;
-              debuggableBuildInputs = filter hasDebugInfo buildInputs;
-              debugOutputs = map (drv: drv.debug) debuggableBuildInputs;
-              debugSymbolsSearchPath = makeSearchPath "lib/debug" debugOutputs;
-            in
-            ''
-              export NIX_DEBUG_INFO_DIRS=${debugSymbolsSearchPath}
-              alias gdb='gdb --directory=./src/'
-            '';
+            debugPackages = attrValues (getAttrs debugPackageNames packages);
+          in
+          mkShell {
+            packages = with pkgs; [
+              gdb
+            ] ++ debugPackages;
 
-          inputsFrom = attrValues packages;
-        };
+            shellHook =
+              let
+                # TODO recursively look into child dependencies
+                buildInputs = unique (flatten (catAttrs "buildInputs" debugPackages));
+                hasDebugInfo = drv: drv ? separateDebugInfo && drv.separateDebugInfo;
+                debuggableBuildInputs = filter hasDebugInfo buildInputs;
+                debugOutputs = map (drv: drv.debug) debuggableBuildInputs;
+                debugSymbolsSearchPath = makeSearchPath "lib/debug" debugOutputs;
+              in
+              ''
+                export NIX_DEBUG_INFO_DIRS=${debugSymbolsSearchPath}
+                alias gdb='gdb --directory=${toString ./src}'
+              '';
+
+            inputsFrom = debugPackages;
+          };
       });
 }
