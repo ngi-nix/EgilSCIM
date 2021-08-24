@@ -5,9 +5,11 @@
 , maintainers
 , platforms
 }:
-pkgs:
+{ lib
+, buildGoModule
+, ...
+}:
 
-with pkgs;
 buildGoModule {
   pname = "egil-test-server";
   inherit version;

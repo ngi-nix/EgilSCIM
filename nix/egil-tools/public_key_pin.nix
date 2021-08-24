@@ -5,11 +5,13 @@
 , maintainers
 , platforms
 }:
-pkgs:
+{ bash
+, openssl
+, ...
+}@pkgs:
 
-
-with pkgs;
-import ./default.nix {
+import ./default.nix
+{
   inherit version;
 
   filename = "public_key_pin.sh";
@@ -33,4 +35,5 @@ import ./default.nix {
   };
 
   wrapProgram = true;
-} pkgs
+}
+  pkgs

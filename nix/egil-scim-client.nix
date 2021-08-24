@@ -7,9 +7,15 @@
 , isDebugBuild ? false
 , doCheck ? true
 }:
-pkgs:
+{ lib
+, boost
+, cmake
+, curl
+, openldap
+, stdenv
+, ...
+}:
 
-with pkgs;
 let
   inherit (lib) optionalString optionals filter cleanSourceWith hasPrefix removePrefix;
 
@@ -21,24 +27,28 @@ let
   pname = "${packageName}${suffix}";
   exePath = "/bin/${exeName}${suffix}";
 
-  sourceFilter = name: type: let
-    baseName = baseNameOf (toString name);
-    relativePath = removePrefix (toString src) name;
-  in (
-    baseName == "CMakeLists.txt" ||
-    hasPrefix "/src" relativePath
-  );
+  sourceFilter = name: type:
+    let
+      baseName = baseNameOf (toString name);
+      relativePath = removePrefix (toString src) name;
+    in
+    (
+      baseName == "CMakeLists.txt" ||
+      hasPrefix "/src" relativePath
+    );
 in
 stdenv.mkDerivation {
   inherit pname version;
+
   src = cleanSourceWith { inherit src; filter = sourceFilter; name = packageName; };
+  outputs = [ "bin" ] ++ optionals isDebugBuild [ "source" ] ++ [ "out" ];
 
   strictDeps = true;
 
   buildInputs = [
-    boost
-    curl # libcurl
-    openldap # libldap
+    boost.dev
+    curl.dev # libcurl
+    openldap.dev # libldap
   ];
 
   nativeBuildInputs = [
@@ -57,8 +67,10 @@ stdenv.mkDerivation {
   '';
 
   installPhase = ''
-    mkdir -p $out/bin/
-    cp ${exeName} $out${exePath}
+    mkdir -p $bin/bin/
+    cp ${exeName} $bin${exePath}
+  '' + optionalString isDebugBuild ''
+    cp -r ../src $source
   '';
 
   dontStrip = isDebugBuild;

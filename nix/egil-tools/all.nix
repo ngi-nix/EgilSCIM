@@ -6,9 +6,11 @@
 , platforms
 , egilToolPackageNames
 }:
-pkgs:
+{ lib
+, symlinkJoin
+, ...
+}@pkgs:
 
-with pkgs;
 let
   inherit (builtins) filter attrValues;
   inherit (lib) hasPrefix getAttrs unique;

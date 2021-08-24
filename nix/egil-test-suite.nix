@@ -5,9 +5,19 @@
 , maintainers
 , platforms
 }:
-pkgs:
+{ lib
+, bash
+, docker
+, dockerTools
+, egil-scim-client
+, egil-test-server
+, makeWrapper
+, openssl
+, stdenvNoCC
+, writeShellScript
+, ...
+}:
 
-with pkgs;
 let
   inherit (builtins) any;
   inherit (lib) cleanSourceWith hasPrefix removePrefix makeSearchPath;
@@ -30,7 +40,7 @@ let
   buildInputs = [
     bash.out
     docker.out
-    egil-scim-client
+    egil-scim-client.bin
     egil-test-server
     openssl.bin
   ];

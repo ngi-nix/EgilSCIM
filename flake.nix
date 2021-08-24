@@ -8,17 +8,27 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     let
-      inherit (builtins) mapAttrs listToAttrs attrValues attrNames filter;
+      inherit (builtins) mapAttrs listToAttrs attrValues attrNames filter substring;
       inherit (flake-utils.lib) defaultSystems eachSystem mkApp;
-      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath optionalAttrs;
+      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath optionalAttrs optionals;
 
       supportedSystems = defaultSystems;
+      year = substring 0 4 self.lastModifiedDate;
+      month = substring 4 2 self.lastModifiedDate;
+      day = substring 6 2 self.lastModifiedDate;
       commonArgs = {
-        version = "2.7.0";
+        version = "unstable-${year}-${month}-${day}";
         homepage = "https://www.skolfederation.se/egil-scimclient-esc/";
         downloadPage = "https://github.com/Sambruk/EgilSCIM/releases";
         changelog = "https://raw.githubusercontent.com/Sambruk/EgilSCIM/master/CHANGELOG.md";
-        maintainers = [];
+        maintainers = [
+          {
+            name = "ilkecan bozdogan";
+            email = "ilkecan@protonmail.com";
+            github = "ilkecan";
+            githubId = "40234257";
+          }
+        ];
         platforms = supportedSystems;
       };
 
@@ -37,6 +47,7 @@
       packageNames = attrNames derivations;
       egilToolPackageNames = filter (hasPrefix "egil-tools-") packageNames;
       debugPackageNames = filter (hasSuffix "-debug") packageNames;
+      nonDebugPackageNames = subtractLists debugPackageNames packageNames;
       appPackageNames = subtractLists [ "egil-tools" ] packageNames;
     in
     {
@@ -70,11 +81,13 @@
         defaultApp = apps.egil-scim-client;
 
         hydraJobs = {
-          build = getAttrs (subtractLists debugPackageNames packageNames) packages;
+          build = getAttrs nonDebugPackageNames packages;
 
-          vmTest = optionalAttrs (isLinux) {
+          vmTest = optionalAttrs isLinux {
             egil-test-suite = optionalAttrs (system == "x86_64-linux") (import "${nixpkgs}/nixos/tests/make-test-python.nix"
               ({ ... }: {
+                name = "egil-test-suite";
+
                 machine = { ... }: {
                   environment.systemPackages = with pkgs; [
                     egil-test-suite
@@ -89,36 +102,42 @@
                   machine.execute("${egil-test-suite.loadDockerImages}")
                   machine.succeed("run_test_suite")
                 '';
-              }) { inherit system pkgs; });
-            };
+              })
+              { inherit system pkgs; });
+          };
         };
 
         devShell =
           let
-            inherit (pkgs) mkShell;
+            inherit (pkgs) mkShell egil-scim-client-debug;
+            inherit (pkgs.stdenv) glibc;
 
             debugPackages = attrValues (getAttrs debugPackageNames packages);
           in
           mkShell {
             packages = with pkgs; [
+              egil-test-suite
               gdb
             ] ++ debugPackages;
 
+            inputsFrom = debugPackages;
+
             shellHook =
               let
-                # TODO recursively look into child dependencies
-                buildInputs = unique (flatten (catAttrs "buildInputs" debugPackages));
+                defaultBuildInputs = optionals isLinux [ glibc ];
+                buildInputs = flatten (catAttrs "buildInputs" debugPackages);
+                propagatedBuildInputs = flatten (map (drv: drv.propagatedBuildInputs) buildInputs);
+                runtimeDependencies = unique (defaultBuildInputs ++ buildInputs ++ propagatedBuildInputs);
+
                 hasDebugInfo = drv: drv ? separateDebugInfo && drv.separateDebugInfo;
-                debuggableBuildInputs = filter hasDebugInfo buildInputs;
-                debugOutputs = map (drv: drv.debug) debuggableBuildInputs;
+                debuggableRuntimeDependencies = filter hasDebugInfo runtimeDependencies;
+                debugOutputs = map (drv: drv.debug) debuggableRuntimeDependencies;
                 debugSymbolsSearchPath = makeSearchPath "lib/debug" debugOutputs;
               in
               ''
                 export NIX_DEBUG_INFO_DIRS=${debugSymbolsSearchPath}
-                alias gdb='gdb --directory=${toString ./src}'
+                alias gdb='gdb --directory=${egil-scim-client-debug.source}'
               '';
-
-            inputsFrom = debugPackages;
           };
       });
 }

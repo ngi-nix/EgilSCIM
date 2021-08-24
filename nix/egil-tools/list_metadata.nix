@@ -5,11 +5,14 @@
 , maintainers
 , platforms
 }:
-pkgs:
+{ lib
+, python3
+, pythonPackages
+, ...
+}@pkgs:
 
-
-with pkgs;
-import ./default.nix {
+import ./default.nix
+{
   inherit version;
 
   filename = "list_metadata.py";
@@ -29,4 +32,5 @@ import ./default.nix {
     license = lib.licenses.mit;
     inherit maintainers platforms;
   };
-} pkgs
+}
+  pkgs

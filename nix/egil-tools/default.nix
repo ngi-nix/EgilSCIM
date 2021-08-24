@@ -4,9 +4,12 @@
 , meta
 , wrapProgram ? false
 }:
-pkgs:
+{ lib
+, makeWrapper
+, stdenvNoCC
+, ...
+}:
 
-with pkgs;
 let
   inherit (builtins) replaceStrings split elemAt;
   inherit (lib) optional optionalString makeSearchPath;
