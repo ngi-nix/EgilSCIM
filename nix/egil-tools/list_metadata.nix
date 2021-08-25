@@ -19,7 +19,7 @@ import ./default.nix
 
   buildInputs = [
     (python3.withPackages (pythonPackages: with pythonPackages; [
-      url-normalize
+      url-normalize.out
     ]))
   ];
 

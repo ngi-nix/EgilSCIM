@@ -10,7 +10,7 @@
     let
       inherit (builtins) mapAttrs listToAttrs attrValues attrNames filter substring;
       inherit (flake-utils.lib) defaultSystems eachSystem mkApp;
-      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath optionalAttrs optionals;
+      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath optionalAttrs optionals getBin;
 
       supportedSystems = defaultSystems;
       year = substring 0 4 self.lastModifiedDate;
@@ -35,6 +35,9 @@
       derivations = {
         egil-scim-client = import ./nix/egil-scim-client.nix commonArgs;
         egil-scim-client-debug = import ./nix/egil-scim-client.nix (commonArgs // { isDebugBuild = true; });
+
+        egil-plugins-echo = import ./nix/egil-plugins-echo.nix commonArgs;
+
         egil-test-server = import ./nix/egil-test-server.nix commonArgs;
         egil-test-suite = import ./nix/egil-test-suite.nix commonArgs;
 
@@ -48,7 +51,7 @@
       egilToolPackageNames = filter (hasPrefix "egil-tools-") packageNames;
       debugPackageNames = filter (hasSuffix "-debug") packageNames;
       nonDebugPackageNames = subtractLists debugPackageNames packageNames;
-      appPackageNames = subtractLists [ "egil-tools" ] packageNames;
+      appPackageNames = subtractLists [ "egil-tools" "egil-plugins-echo" ] packageNames;
     in
     {
       overlays = mapAttrs
@@ -77,7 +80,7 @@
         packages = getAttrs packageNames pkgs;
         defaultPackage = pkgs.egil-scim-client;
 
-        apps = mapAttrs (name: app: mkApp { drv = app; }) (getAttrs appPackageNames packages);
+        apps = mapAttrs (name: drv: mkApp { drv = getBin drv; }) (getAttrs appPackageNames packages);
         defaultApp = apps.egil-scim-client;
 
         hydraJobs = {
@@ -99,7 +102,7 @@
 
                 testScript = with pkgs; ''
                   machine.wait_for_unit("docker.service")
-                  machine.execute("${egil-test-suite.loadDockerImages}")
+                  machine.execute("${egil-test-suite.loadDockerImages.out}")
                   machine.succeed("run_test_suite")
                 '';
               })
@@ -116,9 +119,9 @@
           in
           mkShell {
             packages = with pkgs; [
-              egil-test-suite
-              gdb
-            ] ++ debugPackages;
+              egil-test-suite.out
+              gdb.out
+            ] ++ map getBin debugPackages;
 
             inputsFrom = debugPackages;
 

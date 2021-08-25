@@ -41,7 +41,7 @@ let
     bash.out
     docker.out
     egil-scim-client.bin
-    egil-test-server
+    egil-test-server.out
     openssl.bin
   ];
 

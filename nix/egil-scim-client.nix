@@ -41,7 +41,9 @@ stdenv.mkDerivation {
   inherit pname version;
 
   src = cleanSourceWith { inherit src; filter = sourceFilter; name = packageName; };
-  outputs = [ "bin" ] ++ optionals isDebugBuild [ "source" ] ++ [ "out" ];
+
+  outputs = [ "bin" "dev" ] ++ optionals isDebugBuild [ "source" ] ++ [ "out" ];
+  propagatedBuildOutputs = [ ];
 
   strictDeps = true;
 
@@ -69,6 +71,11 @@ stdenv.mkDerivation {
   installPhase = ''
     mkdir -p $bin/bin/
     cp ${exeName} $bin${exePath}
+
+    mkdir -p $dev/include/
+    cp ../src/pp_interface.h $dev/include/
+
+    mkdir $out
   '' + optionalString isDebugBuild ''
     cp -r ../src $source
   '';

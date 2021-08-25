@@ -20,7 +20,11 @@ in
 stdenvNoCC.mkDerivation {
   pname = "egil-tools-${toolName}";
   inherit version;
+
   src = ./../../tools + "/${filename}";
+
+  outputs = [ "bin" "out" ];
+  propagatedBuildOutputs = [ ];
 
   strictDeps = true;
 
@@ -30,12 +34,14 @@ stdenvNoCC.mkDerivation {
   phases = [ "installPhase" "fixupPhase" ];
 
   installPhase = ''
-    mkdir -p $out/bin
-    cp $src $out${exePath}
+    mkdir -p $bin/bin
+    cp $src $bin${exePath}
+
+    mkdir $out
   '';
 
   postFixup = optionalString wrapProgram ''
-    wrapProgram $out${exePath} --prefix PATH : "${makeSearchPath "bin" buildInputs}"
+    wrapProgram $bin${exePath} --prefix PATH : "${makeSearchPath "bin" buildInputs}"
   '';
 
   passthru = {
