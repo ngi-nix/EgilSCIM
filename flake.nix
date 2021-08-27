@@ -10,7 +10,7 @@
     let
       inherit (builtins) mapAttrs listToAttrs attrValues attrNames filter substring;
       inherit (flake-utils.lib) defaultSystems eachSystem mkApp;
-      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath optionalAttrs optionals getBin;
+      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath optionalAttrs optionals getBin intersectLists;
 
       supportedSystems = defaultSystems;
       year = substring 0 4 self.lastModifiedDate;
@@ -69,22 +69,26 @@
       let
         inherit (pkgs.stdenv) isLinux;
 
+        packageNamesToSkip = optionals (system != "x86_64-linux") [ "egil-test-suite" ];
+        packageNamesToKeep = subtractLists packageNamesToSkip packageNames;
+
+        overlays = getAttrs packageNamesToKeep self.overlays;
         pkgs = import nixpkgs {
           inherit system;
-          overlays = attrValues self.overlays;
+          overlays = attrValues overlays;
         };
       in
       rec {
         checks = packages;
 
-        packages = getAttrs packageNames pkgs;
-        defaultPackage = pkgs.egil-scim-client;
+        packages = getAttrs packageNamesToKeep pkgs;
+        defaultPackage = packages.egil-scim-client;
 
-        apps = mapAttrs (name: drv: mkApp { drv = getBin drv; }) (getAttrs appPackageNames packages);
+        apps = mapAttrs (name: drv: mkApp { drv = getBin drv; }) (getAttrs (intersectLists packageNamesToKeep appPackageNames) packages);
         defaultApp = apps.egil-scim-client;
 
         hydraJobs = {
-          build = getAttrs nonDebugPackageNames packages;
+          build = getAttrs (intersectLists packageNamesToKeep nonDebugPackageNames) packages;
 
           vmTest = optionalAttrs isLinux {
             egil-test-suite = optionalAttrs (system == "x86_64-linux") (import "${nixpkgs}/nixos/tests/make-test-python.nix"
@@ -119,9 +123,9 @@
           in
           mkShell {
             packages = with pkgs; [
-              egil-test-suite.out
               gdb.out
-            ] ++ map getBin debugPackages;
+            ] ++ optionals (system == "x86_64-linux") [ egil-test-suite.out ]
+            ++ map getBin debugPackages;
 
             inputsFrom = debugPackages;
 
