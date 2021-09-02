@@ -15,7 +15,7 @@ let
   inherit (lib) optional optionalString makeSearchPath;
 
   toolName = elemAt (split "\\." filename) 0;
-  exePath = "/bin/${filename}";
+  mainProgram = filename;
 in
 stdenvNoCC.mkDerivation {
   pname = "egil-tools-${toolName}";
@@ -35,18 +35,14 @@ stdenvNoCC.mkDerivation {
 
   installPhase = ''
     mkdir -p $bin/bin
-    cp $src $bin${exePath}
+    cp $src $bin/bin/${mainProgram}
 
     mkdir $out
   '';
 
   postFixup = optionalString wrapProgram ''
-    wrapProgram $bin${exePath} --prefix PATH : "${makeSearchPath "bin" buildInputs}"
+    wrapProgram $bin/bin/${mainProgram} --prefix PATH : "${makeSearchPath "bin" buildInputs}"
   '';
 
-  passthru = {
-    inherit exePath;
-  };
-
-  inherit meta;
+  meta = meta // { inherit mainProgram; };
 }

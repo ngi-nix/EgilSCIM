@@ -11,36 +11,36 @@
 , boost
 , cmake
 , curl
+, nix-filter
 , openldap
 , stdenv
 , ...
 }:
 
 let
-  inherit (lib) optionalString optionals filter cleanSourceWith hasPrefix removePrefix;
+  inherit (lib)
+    optionalString
+    optionals
+  ;
+  inherit (nix-filter) inDirectory;
 
-  src = ./..;
   packageName = "egil-scim-client";
   exeName = "EgilSCIMClient";
-
   suffix = optionalString isDebugBuild "-debug";
   pname = "${packageName}${suffix}";
-  exePath = "/bin/${exeName}${suffix}";
-
-  sourceFilter = name: type:
-    let
-      baseName = baseNameOf (toString name);
-      relativePath = removePrefix (toString src) name;
-    in
-    (
-      baseName == "CMakeLists.txt" ||
-      hasPrefix "/src" relativePath
-    );
+  mainProgram = "${exeName}${suffix}";
 in
 stdenv.mkDerivation {
   inherit pname version;
 
-  src = cleanSourceWith { inherit src; filter = sourceFilter; name = packageName; };
+  src = nix-filter {
+    root = ./..;
+    include = [
+      "CMakeLists.txt"
+      (inDirectory "src")
+    ];
+    name = packageName;
+  };
 
   outputs = [ "bin" "dev" ] ++ optionals isDebugBuild [ "source" ] ++ [ "out" ];
   propagatedBuildOutputs = [ ];
@@ -54,7 +54,7 @@ stdenv.mkDerivation {
   ];
 
   nativeBuildInputs = [
-    cmake
+    cmake.out
   ];
 
   dontPatch = true;
@@ -70,7 +70,7 @@ stdenv.mkDerivation {
 
   installPhase = ''
     mkdir -p $bin/bin/
-    cp ${exeName} $bin${exePath}
+    cp ${exeName} $bin/bin/${mainProgram}
 
     mkdir -p $dev/include/
     cp ../src/pp_interface.h $dev/include/
@@ -81,10 +81,6 @@ stdenv.mkDerivation {
   '';
 
   dontStrip = isDebugBuild;
-
-  passthru = {
-    inherit exePath;
-  };
 
   meta = {
     description = "The EGIL SCIM client" +
@@ -97,6 +93,6 @@ stdenv.mkDerivation {
     inherit homepage downloadPage changelog;
 
     license = lib.licenses.agpl3Plus;
-    inherit maintainers platforms;
+    inherit maintainers mainProgram platforms;
   };
 }

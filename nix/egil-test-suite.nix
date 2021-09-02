@@ -12,6 +12,7 @@
 , egil-scim-client
 , egil-test-server
 , makeWrapper
+, nix-filter
 , openssl
 , stdenvNoCC
 , writeShellScript
@@ -19,23 +20,12 @@
 }:
 
 let
-  inherit (builtins) any;
-  inherit (lib) cleanSourceWith hasPrefix removePrefix makeSearchPath;
+  inherit (lib) makeSearchPath;
+  inherit (dockerTools) pullImage;
+  inherit (nix-filter) inDirectory;
 
-  src = ./../test;
   pname = "egil-test-suite";
-  exePath = "/bin/run_test_suite";
-
-  sourceFilter = name: type:
-    let
-      relativePath = removePrefix (toString src) name;
-    in
-    any (directory: hasPrefix directory relativePath) [
-      "/configs"
-      "/scenarios"
-      "/scripts"
-      "/tests"
-    ];
+  mainProgram = "run_test_suite";
 
   buildInputs = [
     bash.out
@@ -44,34 +34,19 @@ let
     egil-test-server.out
     openssl.bin
   ];
-
-  executableSearchPath = makeSearchPath "bin" buildInputs;
-
-  dockerImages =
-    let
-      inherit (dockerTools) pullImage;
-    in
-    [
-      (pullImage {
-        imageName = "osixia/openldap";
-        imageDigest = "sha256:d212a12aa728ccb4baf06fcc83dc77392d90018d13c9b40717cf455e09aeeef3";
-        sha256 = "sha256-91CSC1kVGgMB7ZRoiuLjn5YpBZIgcZDcmJzwQNJYg/U=";
-        os = "linux";
-        arch = "amd64";
-        finalImageTag = "1.2.4";
-      })
-    ];
-
-  loadDockerImages = writeShellScript "load-docker-images.sh" ''
-    for image in ${toString dockerImages}; do
-      [ -f "$image" ] || continue
-      docker load --input=$image
-    done
-  '';
 in
 stdenvNoCC.mkDerivation {
   inherit pname version;
-  src = cleanSourceWith { inherit src; filter = sourceFilter; name = pname; };
+  src = nix-filter {
+    root = ./../test;
+    include = [
+      (inDirectory "configs")
+      (inDirectory "scenarios")
+      (inDirectory "scripts")
+      (inDirectory "tests")
+    ];
+    name = pname;
+  };
 
   strictDeps = true;
 
@@ -93,19 +68,39 @@ stdenvNoCC.mkDerivation {
     cp -r . $out
 
     mkdir $out/bin/
-    ln -s $out/scripts/run_test_suite $out${exePath}
+    ln -s $out/scripts/run_test_suite $out/bin/${mainProgram}
   '';
 
   postFixup = ''
     for file in $out/scripts/*; do
       [ -f "$file" ] && [ -x "$file" ] || continue
-      wrapProgram "$file" --prefix PATH : "${executableSearchPath}"
+      wrapProgram "$file" --prefix PATH : "${makeSearchPath "bin" buildInputs}"
     done
   '';
 
-  passthru = {
-    inherit exePath loadDockerImages;
-  };
+  passthru =
+    let
+      dockerImages = [
+        (pullImage {
+          imageName = "osixia/openldap";
+          imageDigest = "sha256:d212a12aa728ccb4baf06fcc83dc77392d90018d13c9b40717cf455e09aeeef3";
+          sha256 = "sha256-91CSC1kVGgMB7ZRoiuLjn5YpBZIgcZDcmJzwQNJYg/U=";
+          os = "linux";
+          arch = "amd64";
+          finalImageTag = "1.2.4";
+        })
+      ];
+
+      loadDockerImages = writeShellScript "load-docker-images.sh" ''
+        for image in ${toString dockerImages}; do
+          [ -f "$image" ] || continue
+          docker load --input=$image
+        done
+      '';
+    in
+    {
+      inherit loadDockerImages;
+    };
 
   meta = {
     description = "The EGIL test suite";
@@ -119,6 +114,6 @@ stdenvNoCC.mkDerivation {
     inherit homepage downloadPage changelog;
 
     license = null;
-    inherit maintainers platforms;
+    inherit maintainers mainProgram platforms;
   };
 }

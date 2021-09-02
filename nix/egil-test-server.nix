@@ -10,18 +10,17 @@
 , ...
 }:
 
+let
+  mainProgram = "EGILTestServer";
+in
 buildGoModule {
   pname = "egil-test-server";
   inherit version;
-  src = ./../test/test_server_go/EGILTestServer;
+  src = "${./../test/test_server_go}/${mainProgram}";
 
   vendorSha256 = "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=";
 
   dontPatch = true;
-
-  passthru = {
-    exePath = "/bin/EGILTestServer";
-  };
 
   meta = {
     description = "Test server for EgilSCIM";
@@ -35,6 +34,6 @@ buildGoModule {
     inherit homepage downloadPage changelog;
 
     license = lib.licenses.agpl3Plus;
-    inherit maintainers platforms;
+    inherit maintainers mainProgram platforms;
   };
 }

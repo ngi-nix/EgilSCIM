@@ -4,20 +4,45 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-21.05";
     flake-utils.url = "github:numtide/flake-utils";
+    nix-filter.url = "github:numtide/nix-filter";
+    nix-utils = {
+      url = "git+https://git.sr.ht/~ilkecan/nix-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, nix-utils, ... }@inputs:
     let
-      inherit (builtins) mapAttrs listToAttrs attrValues attrNames filter substring;
-      inherit (flake-utils.lib) defaultSystems eachSystem mkApp;
-      inherit (nixpkgs.lib) hasPrefix hasSuffix getAttrs subtractLists catAttrs unique flatten optional makeSearchPath optionalAttrs optionals getBin intersectLists;
+      inherit (builtins)
+        attrNames
+        attrValues
+        filter
+        substring
+      ;
+      inherit (flake-utils.lib)
+        defaultSystems
+        eachSystem
+      ;
+      inherit (nixpkgs.lib)
+        getAttrs
+        getBin
+        hasPrefix
+        hasSuffix
+        intersectLists
+        optionalAttrs
+        optionals
+        subtractLists
+      ;
+      nix-filter = inputs.nix-filter.lib;
+      inherit (nix-utils.lib)
+        createOverlays
+        getUnstableVersion
+        createDebugSymbolsSearchPath
+      ;
 
       supportedSystems = defaultSystems;
-      year = substring 0 4 self.lastModifiedDate;
-      month = substring 4 2 self.lastModifiedDate;
-      day = substring 6 2 self.lastModifiedDate;
       commonArgs = {
-        version = "unstable-${year}-${month}-${day}";
+        version = getUnstableVersion self.lastModifiedDate;
         homepage = "https://www.skolfederation.se/egil-scimclient-esc/";
         downloadPage = "https://github.com/Sambruk/EgilSCIM/releases";
         changelog = "https://raw.githubusercontent.com/Sambruk/EgilSCIM/master/CHANGELOG.md";
@@ -51,19 +76,9 @@
       egilToolPackageNames = filter (hasPrefix "egil-tools-") packageNames;
       debugPackageNames = filter (hasSuffix "-debug") packageNames;
       nonDebugPackageNames = subtractLists debugPackageNames packageNames;
-      appPackageNames = subtractLists [ "egil-tools" "egil-plugins-echo" ] packageNames;
     in
     {
-      overlays = mapAttrs
-        (name: drv:
-          (final: prev:
-            listToAttrs [
-              { name = name; value = drv final; }
-            ]
-          )
-        )
-        derivations;
-
+      overlays = createOverlays derivations { inherit nix-filter; };
       overlay = self.overlays.egil-scim-client;
     } // eachSystem supportedSystems (system:
       let
@@ -83,9 +98,6 @@
 
         packages = getAttrs packageNamesToKeep pkgs;
         defaultPackage = packages.egil-scim-client;
-
-        apps = mapAttrs (name: drv: mkApp { drv = getBin drv; }) (getAttrs (intersectLists packageNamesToKeep appPackageNames) packages);
-        defaultApp = apps.egil-scim-client;
 
         hydraJobs = {
           build = getAttrs (intersectLists packageNamesToKeep nonDebugPackageNames) packages;
@@ -129,22 +141,10 @@
 
             inputsFrom = debugPackages;
 
-            shellHook =
-              let
-                defaultBuildInputs = optionals isLinux [ glibc ];
-                buildInputs = flatten (catAttrs "buildInputs" debugPackages);
-                propagatedBuildInputs = flatten (map (drv: drv.propagatedBuildInputs) buildInputs);
-                runtimeDependencies = unique (defaultBuildInputs ++ buildInputs ++ propagatedBuildInputs);
-
-                hasDebugInfo = drv: drv ? separateDebugInfo && drv.separateDebugInfo;
-                debuggableRuntimeDependencies = filter hasDebugInfo runtimeDependencies;
-                debugOutputs = map (drv: drv.debug) debuggableRuntimeDependencies;
-                debugSymbolsSearchPath = makeSearchPath "lib/debug" debugOutputs;
-              in
-              ''
-                export NIX_DEBUG_INFO_DIRS=${debugSymbolsSearchPath}
-                alias gdb='gdb --directory=${egil-scim-client-debug.source}'
-              '';
+            shellHook = ''
+              export NIX_DEBUG_INFO_DIRS=${createDebugSymbolsSearchPath pkgs debugPackages}
+              alias gdb='gdb --directory=${egil-scim-client-debug.source}'
+            '';
           };
       });
 }
