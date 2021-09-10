@@ -42,7 +42,7 @@ stdenv.mkDerivation {
     name = packageName;
   };
 
-  outputs = [ "bin" "dev" ] ++ optionals isDebugBuild [ "source" ] ++ [ "out" ];
+  outputs = [ "bin" "dev" "out" ];
   propagatedBuildOutputs = [ ];
 
   strictDeps = true;
@@ -76,8 +76,6 @@ stdenv.mkDerivation {
     cp ../src/pp_interface.h $dev/include/
 
     mkdir $out
-  '' + optionalString isDebugBuild ''
-    cp -r ../src $source
   '';
 
   dontStrip = isDebugBuild;

@@ -143,7 +143,7 @@
 
             shellHook = ''
               export NIX_DEBUG_INFO_DIRS=${createDebugSymbolsSearchPath pkgs debugPackages}
-              alias gdb='gdb --directory=${egil-scim-client-debug.source}'
+              alias gdb='gdb --directory=${egil-scim-client-debug.src}/src'
             '';
           };
       });
