@@ -31,7 +31,7 @@ stdenvNoCC.mkDerivation {
   inherit buildInputs;
   nativeBuildInputs = optional wrapProgram makeWrapper;
 
-  phases = [ "installPhase" "fixupPhase" ];
+  phases = [ "installPhase" "fixupPhase" "installCheckPhase" ];
 
   installPhase = ''
     mkdir -p $bin/bin
@@ -42,6 +42,11 @@ stdenvNoCC.mkDerivation {
 
   postFixup = optionalString wrapProgram ''
     wrapProgram $bin/bin/${mainProgram} --prefix PATH : "${makeSearchPath "bin" buildInputs}"
+  '';
+
+  doInstallCheck = true;
+  installCheckPhase = ''
+    $bin/bin/${mainProgram} -h
   '';
 
   meta = meta // { inherit mainProgram; };

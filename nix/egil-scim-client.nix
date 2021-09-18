@@ -80,6 +80,11 @@ stdenv.mkDerivation {
 
   dontStrip = isDebugBuild;
 
+  doInstallCheck = true;
+  installCheckPhase = ''
+    $bin/bin/${mainProgram} --version
+  '';
+
   meta = {
     description = "The EGIL SCIM client" +
       optionalString isDebugBuild " - debug build";

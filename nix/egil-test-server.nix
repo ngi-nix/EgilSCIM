@@ -22,6 +22,11 @@ buildGoModule {
 
   dontPatch = true;
 
+  doInstallCheck = true;
+  installCheckPhase = ''
+    $out/bin/${mainProgram} --help
+  '';
+
   meta = {
     description = "Test server for EgilSCIM";
     longDescription =
