@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-host=localhost
-port=388
-adminuser=cn=admin,dc=kommunen,dc=se
-adminpasswd=verysecret
-container=kommunens-ldap

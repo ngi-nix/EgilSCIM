@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-source "${BASH_SOURCE%/*}/ldap_vars"
-docker exec $container ldapwhoami -D $adminuser -w $adminpasswd &> /dev/null

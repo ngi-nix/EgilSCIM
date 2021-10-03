@@ -1,3 +1,0 @@
-The name of a student is changed.
-
-sn and displayName are modified.

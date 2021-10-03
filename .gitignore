@@ -1,27 +1,2 @@
-# C object files
-*.o
-*.so
-
-# Temporary vi files
-*.swp
-
-# Temporary emacs files
-*~
-TAGS
-
-# Latex intermediate files
-*.aux
-*.bbl
-*.blg
-*.log
-*.out
-*.toc
-.idea/*
-cmake-build-debug/*
-
-test/test_server_go/EGILTestServer/EGILTestServer
-
-*.pem
-
 # nix build
 /result*
