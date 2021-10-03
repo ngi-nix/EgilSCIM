@@ -4,6 +4,7 @@
 , changelog
 , maintainers
 , platforms
+, source
 }:
 { lib
 , egil-scim-client
@@ -15,7 +16,7 @@ stdenv.mkDerivation {
   pname = "egil-plugins-echo";
   inherit version;
 
-  src = ./../plugins/pp/echo;
+  src = "${toString source}/plugins/pp/echo";
 
   outputs = [ "lib" "out" ];
   propagatedBuildOutputs = [ ];

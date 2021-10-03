@@ -4,6 +4,7 @@
 , changelog
 , maintainers
 , platforms
+, source
 }:
 { lib
 , python3
@@ -13,7 +14,7 @@
 
 import ./default.nix
 {
-  inherit version;
+  inherit version source;
 
   filename = "list_metadata.py";
 

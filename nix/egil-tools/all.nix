@@ -4,6 +4,7 @@
 , changelog
 , maintainers
 , platforms
+, source
 , egilToolPackageNames
 }:
 { lib

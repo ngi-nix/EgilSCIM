@@ -4,6 +4,7 @@
 , changelog
 , maintainers
 , platforms
+, source
 , isDebugBuild ? false
 , doCheck ? true
 }:
@@ -11,7 +12,6 @@
 , boost
 , cmake
 , curl
-, nix-filter
 , openldap
 , stdenv
 , ...
@@ -22,7 +22,6 @@ let
     optionalString
     optionals
   ;
-  inherit (nix-filter) inDirectory;
 
   packageName = "egil-scim-client";
   exeName = "EgilSCIMClient";
@@ -33,14 +32,7 @@ in
 stdenv.mkDerivation {
   inherit pname version;
 
-  src = nix-filter {
-    root = ./..;
-    include = [
-      "CMakeLists.txt"
-      (inDirectory "src")
-    ];
-    name = packageName;
-  };
+  src = source;
 
   outputs = [ "bin" "dev" "out" ];
   propagatedBuildOutputs = [ ];

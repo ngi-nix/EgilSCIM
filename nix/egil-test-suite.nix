@@ -4,6 +4,7 @@
 , changelog
 , maintainers
 , platforms
+, source
 }:
 { lib
 , bash
@@ -12,7 +13,6 @@
 , egil-scim-client
 , egil-test-server
 , makeWrapper
-, nix-filter
 , openssl
 , stdenvNoCC
 , writeShellScript
@@ -22,7 +22,6 @@
 let
   inherit (lib) makeSearchPath;
   inherit (dockerTools) pullImage;
-  inherit (nix-filter) inDirectory;
 
   pname = "egil-test-suite";
   mainProgram = "run_test_suite";
@@ -37,16 +36,7 @@ let
 in
 stdenvNoCC.mkDerivation {
   inherit pname version;
-  src = nix-filter {
-    root = ./../test;
-    include = [
-      (inDirectory "configs")
-      (inDirectory "scenarios")
-      (inDirectory "scripts")
-      (inDirectory "tests")
-    ];
-    name = pname;
-  };
+  src = "${toString source}/test";
 
   strictDeps = true;
 

@@ -4,6 +4,7 @@
 , changelog
 , maintainers
 , platforms
+, source
 }:
 { lib
 , buildGoModule
@@ -16,7 +17,7 @@ in
 buildGoModule {
   pname = "egil-test-server";
   inherit version;
-  src = "${./../test/test_server_go}/${mainProgram}";
+  src = "${toString source}/test/test_server_go/${mainProgram}";
 
   vendorSha256 = "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=";
 

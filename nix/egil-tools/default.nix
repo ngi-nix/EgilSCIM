@@ -2,6 +2,7 @@
 , version
 , buildInputs
 , meta
+, source
 , wrapProgram ? false
 }:
 { lib
@@ -21,7 +22,7 @@ stdenvNoCC.mkDerivation {
   pname = "egil-tools-${toolName}";
   inherit version;
 
-  src = ./../../tools + "/${filename}";
+  src = "${toString source}/tools/${filename}";
 
   outputs = [ "bin" "out" ];
   propagatedBuildOutputs = [ ];

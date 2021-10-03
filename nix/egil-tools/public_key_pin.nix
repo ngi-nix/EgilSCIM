@@ -4,6 +4,7 @@
 , changelog
 , maintainers
 , platforms
+, source
 }:
 { bash
 , openssl
@@ -12,7 +13,7 @@
 
 import ./default.nix
 {
-  inherit version;
+  inherit version source;
 
   filename = "public_key_pin.sh";
 

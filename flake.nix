@@ -4,10 +4,13 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-21.05";
     flake-utils.url = "github:numtide/flake-utils";
-    nix-filter.url = "github:numtide/nix-filter";
     nix-utils = {
       url = "git+https://git.sr.ht/~ilkecan/nix-utils";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    source = {
+      url = "github:Sambruk/EgilSCIM";
+      flake = false;
     };
   };
 
@@ -33,7 +36,6 @@
         optionals
         subtractLists
       ;
-      nix-filter = inputs.nix-filter.lib;
       inherit (nix-utils.lib)
         createOverlays
         getUnstableVersion
@@ -42,6 +44,7 @@
 
       supportedSystems = defaultSystems;
       commonArgs = {
+        source = inputs.source.outPath;
         version = getUnstableVersion self.lastModifiedDate;
         homepage = "https://www.skolfederation.se/egil-scimclient-esc/";
         downloadPage = "https://github.com/Sambruk/EgilSCIM/releases";
@@ -78,7 +81,7 @@
       nonDebugPackageNames = subtractLists debugPackageNames packageNames;
     in
     {
-      overlays = createOverlays derivations { inherit nix-filter; };
+      overlays = createOverlays derivations { };
       overlay = self.overlays.egil-scim-client;
     } // eachSystem supportedSystems (system:
       let
