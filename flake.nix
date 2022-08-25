@@ -5,7 +5,7 @@
     nixpkgs.url = "nixpkgs/nixos-21.05";
     flake-utils.url = "github:numtide/flake-utils";
     nix-utils = {
-      url = "git+https://git.sr.ht/~ilkecan/nix-utils";
+      url = "sourcehut:~ilkecan/nix-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     source = {

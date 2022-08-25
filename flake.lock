@@ -22,17 +22,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1631107672,
-        "narHash": "sha256-WqdEYrgLISHoJXpGa6/bBUxEg8BZ61YQSBoChgoAZlE=",
-        "ref": "master",
-        "rev": "e838da58ecda6b955c803b569efb86a801b59f2d",
-        "revCount": 1,
-        "type": "git",
-        "url": "https://git.sr.ht/~ilkecan/nix-utils"
+        "lastModified": 1633555248,
+        "narHash": "sha256-dwxd2+LWKHkQ7uYNsw4FfAzhmhUswxXy69hXG1JKAus=",
+        "owner": "~ilkecan",
+        "repo": "nix-utils",
+        "rev": "4f2d814b8ff49d5b318aa12bb316fcf27ae37f90",
+        "type": "sourcehut"
       },
       "original": {
-        "type": "git",
-        "url": "https://git.sr.ht/~ilkecan/nix-utils"
+        "owner": "~ilkecan",
+        "repo": "nix-utils",
+        "type": "sourcehut"
       }
     },
     "nixpkgs": {
